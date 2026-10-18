@@ -1,2 +1,2 @@
 # fix
-FIX— a platform that employees boot skilled and unskilled labor. it also provides legitimate online tasks for you to complete and get paid.
+FIX— a platform that employs both skilled and unskilled labor. it also provides legitimate online tasks for you to complete and get paid.
