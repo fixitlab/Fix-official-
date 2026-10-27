@@ -3344,4 +3344,62 @@ body.night-mode .fixAdsterraFeedUnit{background:transparent}
   document.getElementById('menuBtn')?.addEventListener('click', addDownloadButton);
 })();
 </script>
+<script id="fixFeedVideoAutoplay">
+(function(){
+  'use strict';
+  if (!('IntersectionObserver' in window)) return;
+  const watched = new WeakSet();
+  const visibleVideos = new Set();
+  let observer;
+  function isFeedVideo(video){
+    return !!(video && video.matches('#main article.post video') &&
+      !video.closest('.fixFeedAdCard, .sponsoredInline, .fixBannerCreative') &&
+      !video.closest('#threadBody, .chat, .messages, [data-chat]'));
+  }
+  function pause(video){
+    try { video.pause(); } catch(e) {}
+    visibleVideos.delete(video);
+  }
+  function scan(root){
+    if(!root) return;
+    if(root.nodeType === 1 && root.matches && root.matches('video') && isFeedVideo(root)) watch(root);
+    if(root.querySelectorAll) root.querySelectorAll('#main article.post video').forEach(function(v){ if(isFeedVideo(v)) watch(v); });
+  }
+  function watch(video){
+    if(watched.has(video)) return;
+    watched.add(video);
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.setAttribute('muted','');
+    video.setAttribute('playsinline','');
+    video.setAttribute('webkit-playsinline','');
+    observer.observe(video);
+  }
+  observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      const video=entry.target;
+      const shouldPlay=entry.isIntersecting && entry.intersectionRatio >= 0.6 && !document.hidden;
+      if(!shouldPlay){ pause(video); return; }
+      visibleVideos.forEach(function(other){ if(other!==video) pause(other); });
+      visibleVideos.add(video);
+      video.muted=true;
+      const result=video.play();
+      if(result && typeof result.catch==='function') result.catch(function(){ visibleVideos.delete(video); });
+    });
+  }, {threshold:[0,0.25,0.6,0.8,1]});
+  function pauseAll(){
+    visibleVideos.forEach(pause);
+    document.querySelectorAll('#main article.post video').forEach(function(v){ if(isFeedVideo(v)) pause(v); });
+  }
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) pauseAll(); else scan(document.getElementById('main')); });
+  const main=document.getElementById('main');
+  if(main){
+    scan(main);
+    new MutationObserver(function(records){ records.forEach(function(record){ record.addedNodes.forEach(scan); }); }).observe(main,{childList:true,subtree:true});
+  } else {
+    document.addEventListener('DOMContentLoaded',function(){ const m=document.getElementById('main'); if(m){ scan(m); new MutationObserver(function(records){records.forEach(function(r){r.addedNodes.forEach(scan);});}).observe(m,{childList:true,subtree:true}); } },{once:true});
+  }
+})();
+</script>
 </body></html>
